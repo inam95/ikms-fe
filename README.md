@@ -1,7 +1,7 @@
 # IKMS Frontend - Intelligent Knowledge Management System
 
 Next.js 16 RAGchat interface with real-time streaming and AI-powered query planning visualization.
-Uploaded and Indexed PDF file is [here](data/pinecone_vector_database.pdf)
+Uploaded and Indexed PDF file is [here](https://github.com/inam95/ikms-fe/blob/main/data/pinecone_vector_database.pdf)
 
 ## 🎨 Feature: Query Plan Visualization
 
@@ -172,7 +172,6 @@ Displays the AI's planning strategy using `ai-elements` components:
 
 - **Node.js 18+** ([download](https://nodejs.org/))
 - **pnpm** package manager ([installation guide](https://pnpm.io/installation))
-- **Backend running** on `http://localhost:8001` (see [backend README](../ikms-be/README.md))
 
 ### Installation
 
