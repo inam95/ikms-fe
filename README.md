@@ -100,7 +100,7 @@ token             →    text-delta         →   MessageResponse
 ```mermaid
 graph TD
     Page[page.tsx] --> useChat[useChat hook]
-    useChat --> APIRoute[/api/python-be]
+    useChat --> APIRoute["/api/python-be"]
     APIRoute --> Backend[Python Backend]
 
     Page --> Conversation[Conversation UI]
