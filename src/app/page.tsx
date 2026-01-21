@@ -1,18 +1,12 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { CopyIcon, RefreshCcwIcon } from "lucide-react";
+import { DefaultChatTransport } from "ai";
 import { useState } from "react";
 
 import { Conversation, ConversationContent } from "@/components/ai-elements/conversation";
 import { Loader } from "@/components/ai-elements/loader";
-import {
-  Message,
-  MessageAction,
-  MessageActions,
-  MessageContent,
-  MessageResponse,
-} from "@/components/ai-elements/message";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -29,12 +23,18 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
+import { QueryPlan } from "@/components/query-plan";
+import { RAGContext } from "@/components/rag-context";
 
 export default function Home() {
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status, regenerate } = useChat();
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/python-be",
+    }),
+  });
 
   const handleSubmit = (message: PromptInputMessage) => {
     const hasText = Boolean(message.text);
@@ -47,6 +47,16 @@ export default function Home() {
       files: message.files,
     });
     setInput("");
+  };
+
+  const handleCopy = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
   };
 
   return (
@@ -71,51 +81,85 @@ export default function Home() {
                         ))}
                     </Sources>
                   )}
-                {message.parts.map((part, i) => {
-                  switch (part.type) {
-                    case "text":
-                      return (
-                        <Message key={`${message.id}-${i}`} from={message.role}>
-                          <MessageContent>
-                            <MessageResponse>{part.text}</MessageResponse>
-                          </MessageContent>
-                          {message.role === "assistant" && i === messages.length - 1 && (
-                            <MessageActions>
-                              <MessageAction onClick={() => regenerate()} label="Retry">
-                                <RefreshCcwIcon className="size-3" />
-                              </MessageAction>
-                              <MessageAction
-                                onClick={() => navigator.clipboard.writeText(part.text)}
-                                label="Copy"
-                              >
-                                <CopyIcon className="size-3" />
-                              </MessageAction>
-                            </MessageActions>
-                          )}
-                        </Message>
-                      );
-                    case "reasoning":
-                      return (
-                        <Reasoning
-                          key={`${message.id}-${i}`}
-                          className="w-full"
-                          isStreaming={
-                            status === "streaming" &&
-                            i === message.parts.length - 1 &&
-                            message.id === messages.at(-1)?.id
-                          }
-                        >
-                          <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
-                        </Reasoning>
-                      );
-                    default:
-                      return null;
-                  }
-                })}
+                {/* Sort parts to show: 1. Plan, 2. Reasoning, 3. Context, 4. Text/Answer */}
+                {[...message.parts]
+                  .sort((a, b) => {
+                    const order = {
+                      "data-query-plan": 0,
+                      reasoning: 1,
+                      "data-rag-context": 2,
+                      text: 3,
+                    };
+                    const aOrder = order[a.type as keyof typeof order] ?? 99;
+                    const bOrder = order[b.type as keyof typeof order] ?? 99;
+                    return aOrder - bOrder;
+                  })
+                  .map((part, i) => {
+                    switch (part.type) {
+                      case "data-query-plan":
+                        return (
+                          <QueryPlan
+                            key={`${message.id}-plan-${i}`}
+                            plan={(part.data as { plan: string; sub_questions: string[] }).plan}
+                            subQuestions={
+                              (part.data as { plan: string; sub_questions: string[] }).sub_questions
+                            }
+                            isStreaming={
+                              status === "streaming" &&
+                              part === message.parts[message.parts.length - 1] &&
+                              message.id === messages.at(-1)?.id
+                            }
+                          />
+                        );
+                      case "data-rag-context":
+                        return (
+                          <RAGContext
+                            key={`${message.id}-context-${i}`}
+                            context={(part.data as { context: string }).context}
+                          />
+                        );
+                      case "text":
+                        return (
+                          <Message key={`${message.id}-text-${i}`} from={message.role}>
+                            <MessageContent>
+                              <MessageResponse>{part.text}</MessageResponse>
+                            </MessageContent>
+                          </Message>
+                        );
+                      default:
+                        return null;
+                    }
+                  })}
               </div>
             ))}
-            {status === "submitted" && <Loader />}
+            {(() => {
+              const lastMsg = messages.at(-1);
+              const isSubmitted = status === "submitted";
+              const isStreaming = status === "streaming";
+              const isAssistant = lastMsg?.role === "assistant";
+
+              // Check if there's a text part with actual content
+              const textPart = lastMsg?.parts?.find((part) => part.type === "text");
+              const hasTextContent = Boolean(
+                textPart && "text" in textPart && textPart.text && textPart.text.trim().length > 0
+              );
+
+              const shouldShowThinking =
+                isSubmitted || (isStreaming && isAssistant && !hasTextContent);
+
+              return (
+                shouldShowThinking && (
+                  <Message from="assistant">
+                    <MessageContent>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader size={14} className="animate-spin" />
+                        <span>Thinking...</span>
+                      </div>
+                    </MessageContent>
+                  </Message>
+                )
+              );
+            })()}
           </ConversationContent>
         </Conversation>
         <PromptInput onSubmit={handleSubmit} className="mt-4" globalDrop multiple>
