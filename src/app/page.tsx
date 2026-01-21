@@ -15,8 +15,16 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
+import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { QueryPlan } from "@/components/query-plan";
 import { RAGContext } from "@/components/rag-context";
+
+const SUGGESTIONS = [
+  "What are vector databases?",
+  "How does RAG work?",
+  "Explain embedding models",
+  "What are the advantages of vector databases?",
+];
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -140,6 +148,17 @@ export default function Home() {
             })()}
           </ConversationContent>
         </Conversation>
+        {messages.length === 0 && (
+          <Suggestions className="mt-4">
+            {SUGGESTIONS.map((text) => (
+              <Suggestion
+                key={text}
+                suggestion={text}
+                onClick={(suggestion) => setInput(suggestion)}
+              />
+            ))}
+          </Suggestions>
+        )}
         <PromptInput onSubmit={handleSubmit} className="mt-4">
           <PromptInputBody>
             <PromptInputTextarea onChange={(e) => setInput(e.target.value)} value={input} />
