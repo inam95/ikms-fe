@@ -1,6 +1,7 @@
 # IKMS Frontend - Intelligent Knowledge Management System
 
-Next.js 16 chat interface with real-time streaming and AI-powered query planning visualization.
+Next.js 16 RAGchat interface with real-time streaming and AI-powered query planning visualization.
+Uploaded and Indexed PDF file is [here](data/pinecone_vector_database.pdf)
 
 ## 🎨 Feature: Query Plan Visualization
 
