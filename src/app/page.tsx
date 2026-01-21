@@ -9,19 +9,10 @@ import { Loader } from "@/components/ai-elements/loader";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import {
   PromptInput,
-  PromptInputActionAddAttachments,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuTrigger,
-  PromptInputAttachment,
-  PromptInputAttachments,
   PromptInputBody,
   PromptInputFooter,
-  PromptInputHeader,
-  type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
-  PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
 import { QueryPlan } from "@/components/query-plan";
@@ -29,34 +20,21 @@ import { RAGContext } from "@/components/rag-context";
 
 export default function Home() {
   const [input, setInput] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/python-be",
     }),
   });
 
-  const handleSubmit = (message: PromptInputMessage) => {
-    const hasText = Boolean(message.text);
-    const hasAttachments = Boolean(message.files?.length);
-    if (!(hasText || hasAttachments)) {
+  const handleSubmit = (message: { text?: string }) => {
+    if (!message.text) {
       return;
     }
     sendMessage({
-      text: message.text || "Sent with attachments",
-      files: message.files,
+      text: message.text,
     });
     setInput("");
-  };
-
-  const handleCopy = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
   };
 
   return (
@@ -162,24 +140,11 @@ export default function Home() {
             })()}
           </ConversationContent>
         </Conversation>
-        <PromptInput onSubmit={handleSubmit} className="mt-4" globalDrop multiple>
-          <PromptInputHeader>
-            <PromptInputAttachments>
-              {(attachment) => <PromptInputAttachment data={attachment} />}
-            </PromptInputAttachments>
-          </PromptInputHeader>
+        <PromptInput onSubmit={handleSubmit} className="mt-4">
           <PromptInputBody>
             <PromptInputTextarea onChange={(e) => setInput(e.target.value)} value={input} />
           </PromptInputBody>
           <PromptInputFooter>
-            <PromptInputTools>
-              <PromptInputActionMenu>
-                <PromptInputActionMenuTrigger />
-                <PromptInputActionMenuContent>
-                  <PromptInputActionAddAttachments />
-                </PromptInputActionMenuContent>
-              </PromptInputActionMenu>
-            </PromptInputTools>
             <PromptInputSubmit disabled={!input && !status} status={status} />
           </PromptInputFooter>
         </PromptInput>

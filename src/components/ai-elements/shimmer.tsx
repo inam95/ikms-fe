@@ -1,13 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import {
-  type CSSProperties,
-  type ElementType,
-  type JSX,
-  memo,
-  useMemo,
-} from "react";
+import { type CSSProperties, type ElementType, memo, useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -19,6 +13,21 @@ export type TextShimmerProps = {
   spread?: number;
 };
 
+// Create motion components outside of render to avoid recreating them each render
+const motionComponents = {
+  p: motion.p,
+  span: motion.span,
+  div: motion.div,
+  h1: motion.h1,
+  h2: motion.h2,
+  h3: motion.h3,
+  h4: motion.h4,
+  h5: motion.h5,
+  h6: motion.h6,
+} as const;
+
+type SupportedElement = keyof typeof motionComponents;
+
 const ShimmerComponent = ({
   children,
   as: Component = "p",
@@ -26,21 +35,16 @@ const ShimmerComponent = ({
   duration = 2,
   spread = 2,
 }: TextShimmerProps) => {
-  const MotionComponent = motion.create(
-    Component as keyof JSX.IntrinsicElements
-  );
+  const MotionComponent = motionComponents[Component as SupportedElement] ?? motion.p;
 
-  const dynamicSpread = useMemo(
-    () => (children?.length ?? 0) * spread,
-    [children, spread]
-  );
+  const dynamicSpread = useMemo(() => (children?.length ?? 0) * spread, [children, spread]);
 
   return (
     <MotionComponent
       animate={{ backgroundPosition: "0% center" }}
       className={cn(
         "relative inline-block bg-[length:250%_100%,auto] bg-clip-text text-transparent",
-        "[--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--color-background),#0000_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]",
+        "[background-repeat:no-repeat,padding-box] [--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--color-background),#0000_calc(50%+var(--spread)))]",
         className
       )}
       initial={{ backgroundPosition: "100% center" }}
