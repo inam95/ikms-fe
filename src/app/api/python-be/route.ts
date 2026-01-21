@@ -29,14 +29,11 @@ export async function POST(request: Request) {
       execute: async ({ writer }) => {
         try {
           // Call Python backend streaming endpoint
-          const response = await fetch(
-            `https://stemlink-ikms-production.up.railway.app/qa/stream`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ question }),
-            }
-          );
+          const response = await fetch(`${PYTHON_BE_URL}/qa/stream`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question }),
+          });
 
           if (!response.ok) {
             throw new Error(`Python backend error: ${response.status} ${response.statusText}`);
